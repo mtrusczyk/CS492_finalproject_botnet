@@ -14,7 +14,7 @@ function router() {
     const { ip } = req.params
     debug(`New Bot: ${ip}`)
     try {
-      
+      res.sendStatus(200)
     } catch (err) {
       console.log(err)
     }
