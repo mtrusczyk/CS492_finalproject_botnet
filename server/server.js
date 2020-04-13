@@ -7,7 +7,8 @@ const cookieParser = require('cookie-parser')
 // const session = require('express-session')
 const cors = require('cors')
 
-const landing = require('./routes/landing')
+const handleRoutes = require('./routes/handleRoutes')
+const admin = require('./routes/admin')
 
 const server = express()
 const port =  3030
@@ -17,16 +18,14 @@ server.use(bodyParser.json())
 server.use(bodyParser.urlencoded({ extended: false }))
 server.use(cookieParser())
 
-server.use(express.static(path.join(__dirname, '/public/')))
+server.use('/public', express.static(path.join(__dirname, '/public/')))
+server.use('/worms', express.static(path.join(__dirname, '/worms/')))
 
 //views to use if we're displaying anything in the brower from this url (localhost:3030)
-server.set('views', './views')
-server.set('view engine', 'ejs')
+server.set("views", path.join(__dirname, "views"));
+server.set("view engine", "pug");
 
-server.use('/landing', landing)
-
-server.get('/', (req, res) => {
-})
+server.use('/', handleRoutes)
 
 server.listen(port, () => {
   debug(`listening on port ${chalk.green(port)}`)
