@@ -6,5 +6,6 @@ html
     h1 BotNet Command & Control
     h4 Count: #{count}
     h4 Bots
-      each bot, i in botIPs
-        li= bot 
+      each bot, i in bots
+        li= bot.ip
+        li= bot.active
