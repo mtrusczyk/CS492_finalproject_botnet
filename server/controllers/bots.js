@@ -5,8 +5,11 @@ const chalk = require('chalk')
 // BOT model
 let bot = {
   ip: '',
-  lastHeartbeat: '',
   infectedByIp: '',
+  infectedTime: '',
+  infectedTimeDisplay: '',
+  lastHeartbeat: '',
+  lastHeartbeatDisplay: '',
   active: true
 }
 
@@ -14,9 +17,7 @@ let bots = []
 
 function getBots() {
   var now = moment()
-  // debug('now: ', now)
   var check = moment().subtract(1, "minutes")
-  // debug('check: ', check)
   bots.forEach(bot => {
     if (moment(bot.lastHeartbeat).isBefore(check)){
       bot.active = false
@@ -31,7 +32,10 @@ function add(bot) {
     debug(`${chalk.redBright('Bot already exists')}`)
     return false
   } else {
+    bot.infectedTime = moment()
+    bot.infectedTimeDisplay = moment().format('L, LTS')
     bot.lastHeartbeat = moment()
+    bot.lastHeartbeatDisplay = moment().format('L, LTS')
     bot.active = true
     // debug(bot)
     bots.push(bot)
@@ -45,9 +49,14 @@ function add(bot) {
 // updates bot.lastHeartbeat (DATE / TIME)
 function heartbeat(ip) {
   let i = bots.findIndex(b => b.ip === ip)
-  bots[i].lastHeartbeat = moment()
-  bots[i].isActive = true
-  return bot[i]
+  if (i !== -1) {
+    bots[i].lastHeartbeat = moment()
+    bots[i].lastHeartbeatDisplay = moment().format('L, LTS')
+    bots[i].isActive = true
+    return true
+  } else {
+    return false
+  }
 }
 
 function remove(ip) {
