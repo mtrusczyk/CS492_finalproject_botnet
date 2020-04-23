@@ -14,28 +14,60 @@ block content
         p.lead.text-muted
           | Inspired by the Mirai Malware, this projects safely simulates the malware through raspberry pi in a safe and closed wifi connection. 
     .album.py-3.bg-light
-      .container
-        .row.pb-3.pl-3
-          span.text-muted.pr-2 Current Time: 
-          span.text-muted= currentTime
-        .row
-          each bot, i in bots
-            .col-md-4
-              .card.mb-3.p-3.shadow-sm
-                .row.pl-3
-                  p.font-weight-bold.pr-2 IP Address: 
-                  p= bot.ip
-                .row.pl-3
-                  p.font-weight-bold.pr-2 Infected By: 
-                  p= bot.infectedByIp
-                .row.pl-3
-                  p.font-weight-bold.pr-2 Active: 
-                  p= bot.active
-                .row.pl-3
-                  p.font-weight-bold.pr-2 Infected Time: 
-                  p= bot.infectedTimeDisplay
-                .row.pl-3
-                  p.font-weight-bold.pr-2 Last Heartbeat: 
-                  p= bot.lastHeartbeatDisplay
+      .row.px-5
+        .col-8
+          .row.pb-3.pl-4
+            span.text-muted.pr-2 Current Time: 
+            span.text-muted= currentTime
+          .row.pb-3
+            .col
+              table.table
+                thead
+                  tr
+                    th(scope='col') IP Address
+                    th(scope='col') Infected By
+                    th(scope='col') Is Active
+                    th(scope='col') Infected Time
+                    th(scope='col') Last Heartbeat
+                tbody
+                  each bot, i in bots
+                    tr
+                      th(scope='row')
+                        p= bot.ip
+                      td
+                        p= bot.infectedByIp
+                      td
+                        p= bot.active
+                      td
+                        p= bot.infectedTimeDisplay
+                      td
+                        p= bot.lastHeartbeatDisplay
+
+        .col
+          .row.pb-3.pl-3
+            form(method='POST' action='/target')
+              .row.pl-3
+                div.form-group
+                  input#name.form-control(type='text', placeholder='DoS Attack URL' name='url')
+                .col-1
+                  button.btn.btn-secondary(type='submit') Execute
+          .row.pb-3.pl-3
+            .pr-2.font-weight-bold Target:
+            p= target
+          .row.pb-3
+            .col
+              table.table
+                thead
+                  tr
+                    th(scope='col') Attack
+                tbody
+                  each a, i in attacks
+                    tr
+                      td(scope='row')
+                        p= a.agent
+                        p.text-muted= a.timeDisplay
+                      
+                  
+
 
           

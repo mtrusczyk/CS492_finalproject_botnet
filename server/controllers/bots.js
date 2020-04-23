@@ -14,6 +14,8 @@ let bot = {
 }
 
 let bots = []
+let target
+let attacks = []
 
 function getBots() {
   var now = moment()
@@ -24,6 +26,15 @@ function getBots() {
     }
   })
   return bots
+}
+
+function getTarget() {
+  return target
+}
+
+function setTarget(url) {
+  target = url
+  return url
 }
 
 function add(bot) {
@@ -53,9 +64,14 @@ function heartbeat(ip) {
     bots[i].lastHeartbeat = moment()
     bots[i].lastHeartbeatDisplay = moment().format('L, LTS')
     bots[i].isActive = true
-    return true
+    if (target) {
+      return target
+    } else {
+      return 'No Target'
+    }
+    
   } else {
-    return false
+    return 'Bot does not exist yet'
   }
 }
 
@@ -63,4 +79,30 @@ function remove(ip) {
   return bots.filter(b => b.ip !== ip)
 }
 
-module.exports ={ getBots, add, heartbeat, remove}
+function documentAttack(a) {
+  try {
+    if (getTarget()) {
+      let attack = {
+      agent: a,
+      time: moment(),
+        timeDisplay: moment().format('L, LTS')
+      }
+      attacks.push(attack)
+      return true
+    } else {
+      return false
+    }
+  } catch (error) {
+    return false
+  }
+}
+
+function getAttacks() {
+  if (attacks.length > 0) {
+    return attacks
+  } else {
+    return 'No Attacks'
+  }
+}
+
+module.exports ={ getBots, getTarget, setTarget, add, heartbeat, remove, documentAttack, getAttacks}
