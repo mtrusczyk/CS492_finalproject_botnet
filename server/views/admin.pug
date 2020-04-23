@@ -1,0 +1,41 @@
+extends layout
+
+block content
+  //- h4 Count: #{count}
+  //- h4 Bots
+  //-   each bot, i in bots
+  //-     li= bot.ip
+  //-     li= bot.active
+  main(role='main')
+    section.jumbotron.text-center
+      .container
+        h1 CS492-70 - Final Project - Botnet
+        h5 By: Matt Rusczyk & Ryan Lauzon
+        p.lead.text-muted
+          | Inspired by the Mirai Malware, this projects safely simulates the malware through raspberry pi in a safe and closed wifi connection. 
+    .album.py-3.bg-light
+      .container
+        .row.pb-3.pl-3
+          span.text-muted.pr-2 Current Time: 
+          span.text-muted= currentTime
+        .row
+          each bot, i in bots
+            .col-md-4
+              .card.mb-3.p-3.shadow-sm
+                .row.pl-3
+                  p.font-weight-bold.pr-2 IP Address: 
+                  p= bot.ip
+                .row.pl-3
+                  p.font-weight-bold.pr-2 Infected By: 
+                  p= bot.infectedByIp
+                .row.pl-3
+                  p.font-weight-bold.pr-2 Active: 
+                  p= bot.active
+                .row.pl-3
+                  p.font-weight-bold.pr-2 Infected Time: 
+                  p= bot.infectedTimeDisplay
+                .row.pl-3
+                  p.font-weight-bold.pr-2 Last Heartbeat: 
+                  p= bot.lastHeartbeatDisplay
+
+          
