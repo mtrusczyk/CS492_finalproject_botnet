@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "debug": "^4.1.1",
     "express": "^4.17.1",
+    "express-useragent": "^1.0.13",
     "install": "^0.13.0",
     "moment": "^2.24.0",
     "nodemon": "^2.0.2",
