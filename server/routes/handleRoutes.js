@@ -19,7 +19,7 @@ function router() {
       var botsArray = bots.getBots()
       var target = bots.getTarget()
       var attacks = bots.getAttacks()
-      debug(attacks)
+      // debug(attacks)
       res.render('admin', {
         currentTime: moment().format('L, LTS'),
         bots: botsArray,
@@ -71,8 +71,8 @@ function router() {
   
   async function target(req, res) {
     let attack = req.get('user-agent')
-    debug(attack)
-    debug('TARGET URL: ', req.body.url)
+    // debug(attack)
+    // debug('TARGET URL: ', req.body.url)
     const { url } = req.body
     try {
       var response = await bots.setTarget(url)
