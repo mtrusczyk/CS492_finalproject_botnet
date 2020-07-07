@@ -1,17 +1,12 @@
 extends layout
 
 block content
-  //- h4 Count: #{count}
-  //- h4 Bots
-  //-   each bot, i in bots
-  //-     li= bot.ip
-  //-     li= bot.active
   main(role='main')
-    section.jumbotron.text-center
+    .text-center.bg-secondary.py-4
       .container
-        h1 CS492-70 - Final Project - Botnet
-        h5 By: Matt Rusczyk & Ryan Lauzon
-        p.lead.text-muted
+        h1.text-white CS492-70 - Final Project - Botnet
+        h5.text-white By: Matt Rusczyk & Ryan Lauzon
+        p.lead.text-dark
           | Inspired by the Mirai Malware, this projects safely simulates the malware through raspberry pi in a safe and closed wifi connection. 
     .album.py-3.bg-light
       .row.px-5

